@@ -1,0 +1,3 @@
+name: web
+dependencies:
+  - flask=1.1.2
