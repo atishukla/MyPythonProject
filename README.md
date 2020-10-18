@@ -109,3 +109,24 @@ User('atishay', 'atishay@email.com', 'default.jpg')
 []
 >>>
 ```
+### Actual creation of user and password
+- Verify from db
+```
+from flaskapp import db
+User.query.all()
+from flaskapp.models import User
+User.query.first()
+User('atishay', 'atishay@email.com', 'default.jpg')
+user = User.query.first()
+user.password
+'$2b$12$bVro9SQ6HZ1Yxs4EouceTebrE3BYEOc7.Eq/zddYdQdxt4lA7dWXi'
+```
+- It does not stop us from using the same user and password again until we save it in database
+```
+sqlalchemy.exc.IntegrityError
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: user.email
+[SQL: INSERT INTO user (username, email, image_file, password) VALUES (?, ?, ?, ?)]
+[parameters: ('atishay', 'atishay@email.com', 'default.jpg', '$2b$12$7dDaHPt8J6GMWBOAwd6lFOQRaADCh6xErUVShsjstYGpV7zla1nPa')]
+(Background on this error at: http://sqlalche.me/e/13/gkpj)
+```
+We solve this in forms by using flasks validators which are included in flask wtf
