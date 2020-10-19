@@ -1,5 +1,5 @@
-from flask import render_template, flash, url_for, redirect
-from flask_login import login_user, current_user, logout_user
+from flask import render_template, flash, url_for, redirect, request
+from flask_login import login_user, current_user, logout_user, login_required
 
 from flaskapp.models import User
 from flaskapp import app, bcrypt, db
@@ -55,8 +55,9 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()  # check user exists from db
         if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user, remember=form.remember.data)  # login user from flas
-            return redirect(url_for('home'))
+            login_user(user, remember=form.remember.data)  # login user from flask
+            next_page = request.args.get('next')  # in case query param in url like account page accessed directly
+            return redirect(next_page) if next_page else redirect(url_for('home'))
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')  # else warning
     return render_template('login.html', title='Login', form=form)
@@ -66,3 +67,9 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('home'))
+
+
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html', title='Account')
