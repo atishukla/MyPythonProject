@@ -1,8 +1,9 @@
+import json
 import os
 import secrets
 from PIL import Image
 
-from flask import render_template, flash, url_for, redirect, request
+from flask import render_template, flash, url_for, redirect, request, abort
 from flask_login import login_user, current_user, logout_user, login_required
 
 from flaskapp.models import User, Post
@@ -101,4 +102,60 @@ def new_post():
         db.session.commit()
         flash('Your post has been created!', 'success')
         return redirect(url_for('home'))
-    return render_template('create_post.html', title='New Post', form=form)
+    return render_template('create_post.html', title='New Post', form=form, legend='New Post')
+
+
+@app.route('/post/<int:post_id>')
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return render_template('post.html', title=post.title, post=post)
+
+
+@app.route('/post/<int:post_id>/update', methods=['GET', 'POST'])
+@login_required
+def update_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        db.session.commit()
+        flash('Your post has been updated!', 'success')
+        return redirect(url_for('post', post_id=post.id))
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+    return render_template('create_post.html', title='Update Post', form=form, legend='Update Post')
+
+
+@app.route('/post/<int:post_id>/delete', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    db.session.delete(post)
+    db.session.commit()
+    flash('Your post have been deleted!', 'success')
+    return redirect(url_for('home'))
+
+
+# put this in your routes.py
+# then add "import json" in routes.py
+# save the json in static folder with the name "posts.json"
+# then got to localhost:5000/debug_add_posts
+# warning: make sure you already have 2 users before doing this!
+@app.route("/debug_add_posts")
+def debug_add_post():
+    json_path = os.path.join(app.root_path, 'static', 'posts.json')
+    with open(json_path) as json_file:
+        data = json.load(json_file)
+        for post_data in data:
+            author = User.query.get(post_data['user_id'])
+            post = Post(title=post_data['title'], content=post_data['content'], author=author)
+            db.session.add(post)
+            db.session.commit()
+    flash("Posts have been added!", "success")
+    return redirect(url_for('home'))
