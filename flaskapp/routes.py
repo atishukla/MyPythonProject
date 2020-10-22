@@ -15,7 +15,7 @@ from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostF
 @app.route('/home')
 def home():
     page = request.args.get('page', 1, type=int)
-    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5) # newest at top
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5)  # newest at top
     return render_template('home.html', posts=posts)
 
 
@@ -162,9 +162,11 @@ def debug_add_post():
     return redirect(url_for('home'))
 
 
-@app.route('/')
-@app.route('/home')
-def home():
+@app.route('/user/<string:username>')  # dynamic route
+def user_posts(username):
     page = request.args.get('page', 1, type=int)
-    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5) # newest at top
-    return render_template('home.html', posts=posts)
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(author=user) \
+        .order_by(Post.date_posted.desc()) \
+        .paginate(page=page, per_page=5)  # newest at top
+    return render_template('user_posts.html', posts=posts, user=user)
