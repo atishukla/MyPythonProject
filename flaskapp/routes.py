@@ -15,7 +15,7 @@ from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostF
 @app.route('/home')
 def home():
     page = request.args.get('page', 1, type=int)
-    posts = Post.query.paginate(page=page, per_page=5)
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5) # newest at top
     return render_template('home.html', posts=posts)
 
 
@@ -160,3 +160,11 @@ def debug_add_post():
             db.session.commit()
     flash("Posts have been added!", "success")
     return redirect(url_for('home'))
+
+
+@app.route('/')
+@app.route('/home')
+def home():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5) # newest at top
+    return render_template('home.html', posts=posts)
