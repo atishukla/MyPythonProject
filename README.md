@@ -130,3 +130,89 @@ sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed
 (Background on this error at: http://sqlalche.me/e/13/gkpj)
 ```
 We solve this in forms by using flasks validators which are included in flask wtf
+
+
+### Deployment
+
+- We will use gunicorn and nginx for this
+- Not recommended to use development server
+```
+sudo apt install nginx
+```
+- Install gunicorn in virtual env
+```
+pip install gunicorn
+```
+- nginx will be webserver and will be handling static file and other things
+- Python stuff will be handled by gunicorn
+
+#### Steps
+
+1. Remove the default config file for nginx
+```
+sudo rm /etc/nginx/sites-enabled/default
+```
+2. Create a new one
+```
+sudo nano /etc/nginx/sites-enabled/flaskapp
+
+server {
+        listen 80;
+        server_name 3.8.120.252;
+
+        location /static {
+                alias /home/atishay/MyPythonProject/flaskapp/static;
+        }
+
+        location / {
+                proxy_pass http://localhost:8000;
+                include /etc/nginx/proxy_params;
+                proxy_redirect off;
+        }
+}
+```
+
+- Restart nginx
+
+```
+ sudo systemctl restart nginx
+```
+
+- Run gunicorn
+```
+gunicorn -w 3 run:app
+```
+- for number of workers gunicorn says (2 * num_cores) + 1
+- no of cores = nproc --all
+
+- But this is not we want as we want to restart gunicorn and run in background
+- We will use supervisor for this
+```
+sudo apt install supervisor
+```
+```
+sudo nano /etc/supervisor/conf.d/flaskapp.conf
+
+[program:flaskapp]
+directory=/home/atishay/MyPythonProject
+command=/home/atishay/MyPythonProject/venv/bin/gunicorn -w 3 run:app
+user=atishay
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stderr_logfile=/var/log/flaskapp/flaskapp.err.log
+stdout_logfile=/var/log/flaskapp/flaskapp.out.log
+```
+- Now create the log files
+```
+sudo mkdir -p /var/log/flaskapp
+sudo touch /var/log/flaskapp/flaskapp.err.log
+sudo touch /var/log/flaskapp/flaskapp.out.log
+```
+
+- Restart supervisor
+```
+(venv) atishay@flask-server:~/MyPythonProject$ sudo supervisorctl reload
+Restarted supervisord
+```
